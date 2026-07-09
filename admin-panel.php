@@ -5,24 +5,17 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
-$totalProducts = (int) $pdo->query('SELECT COUNT(*) FROM products')->fetchColumn();
-$totalCategories = (int) $pdo->query('SELECT COUNT(*) FROM categories')->fetchColumn();
-$totalUsers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'user'")->fetchColumn();
-$totalOrders = (int) $pdo->query('SELECT COUNT(*) FROM orders')->fetchColumn();
-$pendingOrders = (int) $pdo->query("SELECT COUNT(*) FROM orders WHERE order_status = 'pending'")->fetchColumn();
-$completedSales = (float) $pdo
-    ->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE order_status = 'completed'")
-    ->fetchColumn();
+$productsRepository = new ProductRepository($pdo);
+$usersRepository = new UserRepository($pdo);
+$orderService = new OrderService($pdo);
 
-$recentOrders = $pdo
-    ->query(
-        'SELECT o.id, o.total_amount, o.order_status, o.created_at, u.name AS user_name
-         FROM orders o
-         JOIN users u ON u.id = o.user_id
-         ORDER BY o.id DESC
-         LIMIT 5'
-    )
-    ->fetchAll();
+$totalProducts = $productsRepository->countProducts();
+$totalCategories = $productsRepository->countCategories();
+$totalUsers = $usersRepository->countCustomers();
+$totalOrders = $orderService->countOrders();
+$pendingOrders = $orderService->countPendingOrders();
+$completedSales = $orderService->completedSales();
+$recentOrders = $orderService->recentOrders();
 ?>
 <!DOCTYPE html>
 <html lang="en">

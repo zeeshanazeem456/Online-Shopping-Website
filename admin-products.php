@@ -5,6 +5,8 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
+$productsRepository = new ProductRepository($pdo);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -17,8 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception('Invalid product status.');
             }
 
-            $statement = $pdo->prepare('UPDATE products SET status = ? WHERE id = ?');
-            $statement->execute([$status, $productId]);
+            $productsRepository->setStatus($productId, $status);
 
             flash_success('Product status updated.');
             redirect_to('admin-products.php');
@@ -27,8 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'delete_product') {
             $productId = (int) ($_POST['product_id'] ?? 0);
 
-            $statement = $pdo->prepare('DELETE FROM products WHERE id = ?');
-            $statement->execute([$productId]);
+            $productsRepository->delete($productId);
 
             flash_success('Product removed.');
             redirect_to('admin-products.php');
@@ -42,20 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $message = get_flash_message();
 $error = get_flash_error();
 
-$products = $pdo
-    ->query(
-        "SELECT p.id, p.name, p.image,
-                GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') AS category_names,
-                p.price, p.stock, p.status, p.created_at,
-                COUNT(DISTINCT oi.id) AS order_item_count
-         FROM products p
-         LEFT JOIN product_categories pc ON pc.product_id = p.id
-         LEFT JOIN categories c ON c.id = pc.category_id
-         LEFT JOIN order_items oi ON oi.product_id = p.id
-         GROUP BY p.id, p.name, p.image, p.price, p.stock, p.status, p.created_at
-         ORDER BY p.id"
-    )
-    ->fetchAll();
+$products = $productsRepository->productsWithCategoriesAndOrderCounts();
 ?>
 <!DOCTYPE html>
 <html lang="en">

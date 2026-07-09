@@ -5,18 +5,8 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
-$customers = $pdo
-    ->query(
-        "SELECT u.id, u.name, u.email, u.created_at,
-                COUNT(o.id) AS order_count,
-                COALESCE(SUM(o.total_amount), 0) AS total_spent
-         FROM users u
-         LEFT JOIN orders o ON o.user_id = u.id
-         WHERE u.role = 'user'
-         GROUP BY u.id, u.name, u.email, u.created_at
-         ORDER BY u.id DESC"
-    )
-    ->fetchAll();
+$usersRepository = new UserRepository($pdo);
+$customers = $usersRepository->customerSummaries();
 ?>
 <!DOCTYPE html>
 <html lang="en">

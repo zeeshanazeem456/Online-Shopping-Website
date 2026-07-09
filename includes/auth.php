@@ -1,8 +1,19 @@
 <?php
 
+require_once __DIR__ . '/classes/Auth.php';
+require_once __DIR__ . '/classes/Flash.php';
+require_once __DIR__ . '/classes/UserRepository.php';
+require_once __DIR__ . '/classes/ProductRepository.php';
+require_once __DIR__ . '/classes/ProductImageUploader.php';
+require_once __DIR__ . '/classes/CartService.php';
+require_once __DIR__ . '/classes/OrderService.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+$auth = new Auth();
+$flash = new Flash();
 
 function h($value)
 {
@@ -17,56 +28,56 @@ function redirect_to($path)
 
 function is_logged_in()
 {
-    return isset($_SESSION['user_id']);
+    global $auth;
+
+    return $auth->isLoggedIn();
 }
 
 function require_login()
 {
-    if (!is_logged_in()) {
-        redirect_to('login.php');
-    }
+    global $auth;
+
+    $auth->requireLogin();
 }
 
 function require_user()
 {
-    require_login();
+    global $auth;
 
-    if ($_SESSION['role'] !== 'user') {
-        redirect_to('admin-panel.php');
-    }
+    $auth->requireUser();
 }
 
 function require_admin()
 {
-    require_login();
+    global $auth;
 
-    if ($_SESSION['role'] !== 'admin') {
-        redirect_to('shop.php');
-    }
+    $auth->requireAdmin();
 }
 
 function flash_success($message)
 {
-    $_SESSION['message'] = $message;
+    global $flash;
+
+    $flash->success($message);
 }
 
 function flash_error($message)
 {
-    $_SESSION['error'] = $message;
+    global $flash;
+
+    $flash->error($message);
 }
 
 function get_flash_message()
 {
-    $message = $_SESSION['message'] ?? '';
-    unset($_SESSION['message']);
+    global $flash;
 
-    return $message;
+    return $flash->getSuccess();
 }
 
 function get_flash_error()
 {
-    $error = $_SESSION['error'] ?? '';
-    unset($_SESSION['error']);
+    global $flash;
 
-    return $error;
+    return $flash->getError();
 }

@@ -6,6 +6,8 @@ require __DIR__ . '/includes/auth.php';
 require_user();
 
 $userId = (int) $_SESSION['user_id'];
+$productsRepository = new ProductRepository($pdo);
+$cartService = new CartService($pdo, $productsRepository);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -14,36 +16,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_cart') {
         $quantity = (int) ($_POST['quantity'] ?? 1);
 
-        $statement = $pdo->prepare(
-            'SELECT c.id, p.stock
-             FROM cart_items c
-             JOIN products p ON p.id = c.product_id
-             WHERE c.id = ? AND c.user_id = ?'
-        );
-        $statement->execute([$cartItemId, $userId]);
-        $cartItem = $statement->fetch();
-
-        if (!$cartItem) {
-            flash_error('Cart item not found.');
-        } elseif ($quantity < 1) {
-            $statement = $pdo->prepare('DELETE FROM cart_items WHERE id = ? AND user_id = ?');
-            $statement->execute([$cartItemId, $userId]);
-            flash_success('Item removed from cart.');
-        } elseif ($quantity > (int) $cartItem['stock']) {
-            flash_error('Quantity cannot be greater than available stock.');
-        } else {
-            $statement = $pdo->prepare('UPDATE cart_items SET quantity = ? WHERE id = ? AND user_id = ?');
-            $statement->execute([$quantity, $cartItemId, $userId]);
-            flash_success('Cart updated.');
+        try {
+            flash_success($cartService->updateItem($userId, $cartItemId, $quantity));
+        } catch (Throwable $exception) {
+            flash_error($exception->getMessage());
         }
 
         redirect_to('cart.php');
     }
 
     if ($action === 'remove_from_cart') {
-        $statement = $pdo->prepare('DELETE FROM cart_items WHERE id = ? AND user_id = ?');
-        $statement->execute([$cartItemId, $userId]);
-
+        $cartService->removeItem($userId, $cartItemId);
         flash_success('Item removed from cart.');
         redirect_to('cart.php');
     }
@@ -52,20 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $message = get_flash_message();
 $error = get_flash_error();
 
-$statement = $pdo->prepare(
-    'SELECT c.id AS cart_item_id, c.quantity, p.name, p.price, p.stock, c.quantity * p.price AS line_total
-     FROM cart_items c
-     JOIN products p ON p.id = c.product_id
-     WHERE c.user_id = ?
-     ORDER BY c.id'
-);
-$statement->execute([$userId]);
-$cartItems = $statement->fetchAll();
-
-$cartTotal = 0;
-foreach ($cartItems as $item) {
-    $cartTotal += (float) $item['line_total'];
-}
+$cartItems = $cartService->itemsForUser($userId);
+$cartTotal = $cartService->total($cartItems);
 ?>
 <!DOCTYPE html>
 <html lang="en">

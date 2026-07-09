@@ -5,46 +5,8 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
-function save_product_edit_upload($fieldName, $productName)
-{
-    if (!isset($_FILES[$fieldName]) || $_FILES[$fieldName]['error'] === UPLOAD_ERR_NO_FILE) {
-        return '';
-    }
-
-    if ($_FILES[$fieldName]['error'] !== UPLOAD_ERR_OK) {
-        throw new Exception('Image upload failed.');
-    }
-
-    if ($_FILES[$fieldName]['size'] > 2 * 1024 * 1024) {
-        throw new Exception('Image size must be 2MB or less.');
-    }
-
-    $extension = strtolower(pathinfo($_FILES[$fieldName]['name'], PATHINFO_EXTENSION));
-    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-
-    if (!in_array($extension, $allowedExtensions, true)) {
-        throw new Exception('Only JPG, PNG, WEBP, and GIF images are allowed.');
-    }
-
-    if (!getimagesize($_FILES[$fieldName]['tmp_name'])) {
-        throw new Exception('Uploaded file is not a valid image.');
-    }
-
-    $uploadDir = __DIR__ . '/assets/products';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0777, true);
-    }
-
-    $safeName = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $productName));
-    $fileName = trim($safeName, '-') . '-' . time() . '.' . $extension;
-    $destination = $uploadDir . '/' . $fileName;
-
-    if (!move_uploaded_file($_FILES[$fieldName]['tmp_name'], $destination)) {
-        throw new Exception('Could not save uploaded image.');
-    }
-
-    return 'products/' . $fileName;
-}
+$productsRepository = new ProductRepository($pdo);
+$imageUploader = new ProductImageUploader(__DIR__ . '/assets/products');
 
 $productId = (int) ($_GET['id'] ?? $_POST['product_id'] ?? 0);
 
@@ -62,58 +24,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status = $_POST['status'] ?? 'active';
         $categoryIds = $_POST['category_ids'] ?? [];
 
-        if ($name === '' || $price <= 0 || $stock < 0) {
-            throw new Exception('Product name, valid price, and stock are required.');
-        }
-
         if (!in_array($status, ['active', 'inactive'], true)) {
             $status = 'active';
         }
 
-        if (!$categoryIds) {
-            throw new Exception('Select at least one category.');
-        }
-
-        $newImage = save_product_edit_upload('image_upload', $name);
-
-        $pdo->beginTransaction();
-
-        if ($newImage !== '') {
-            $statement = $pdo->prepare(
-                'UPDATE products
-                 SET name = ?, description = ?, price = ?, stock = ?, image = ?, status = ?
-                 WHERE id = ?'
-            );
-            $statement->execute([$name, $description, $price, $stock, $newImage, $status, $productId]);
-        } else {
-            $statement = $pdo->prepare(
-                'UPDATE products
-                 SET name = ?, description = ?, price = ?, stock = ?, status = ?
-                 WHERE id = ?'
-            );
-            $statement->execute([$name, $description, $price, $stock, $status, $productId]);
-        }
-
-        $statement = $pdo->prepare('DELETE FROM product_categories WHERE product_id = ?');
-        $statement->execute([$productId]);
-
-        $insertCategory = $pdo->prepare(
-            'INSERT IGNORE INTO product_categories (product_id, category_id) VALUES (?, ?)'
-        );
-
-        foreach ($categoryIds as $categoryId) {
-            $insertCategory->execute([$productId, (int) $categoryId]);
-        }
-
-        $pdo->commit();
+        $newImage = $imageUploader->save('image_upload', $name);
+        $productsRepository->update($productId, [
+            'name' => $name,
+            'description' => $description,
+            'price' => $price,
+            'stock' => $stock,
+            'image' => $newImage,
+            'status' => $status,
+        ], $categoryIds);
 
         flash_success('Product updated successfully.');
         redirect_to('admin-products.php');
     } catch (Throwable $exception) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-
         flash_error($exception->getMessage() ?: 'Product could not be updated.');
         redirect_to('admin-edit-product.php?id=' . $productId);
     }
@@ -121,22 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $error = get_flash_error();
 
-$statement = $pdo->prepare('SELECT * FROM products WHERE id = ?');
-$statement->execute([$productId]);
-$product = $statement->fetch();
+$product = $productsRepository->findById($productId);
 
 if (!$product) {
     flash_error('Product not found.');
     redirect_to('admin-products.php');
 }
 
-$categories = $pdo
-    ->query('SELECT id, name FROM categories ORDER BY name')
-    ->fetchAll();
-
-$statement = $pdo->prepare('SELECT category_id FROM product_categories WHERE product_id = ?');
-$statement->execute([$productId]);
-$selectedCategoryIds = array_map('intval', $statement->fetchAll(PDO::FETCH_COLUMN));
+$categories = $productsRepository->categories();
+$selectedCategoryIds = $productsRepository->selectedCategoryIds($productId);
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -6,17 +6,11 @@ require __DIR__ . '/includes/auth.php';
 require_user();
 
 $userId = (int) $_SESSION['user_id'];
+$orderService = new OrderService($pdo);
 $message = get_flash_message();
 $error = get_flash_error();
 
-$statement = $pdo->prepare(
-    'SELECT id, total_amount, payment_method, order_status, shipping_address, created_at
-     FROM orders
-     WHERE user_id = ?
-     ORDER BY id DESC'
-);
-$statement->execute([$userId]);
-$orders = $statement->fetchAll();
+$orders = $orderService->userOrders($userId);
 ?>
 <!DOCTYPE html>
 <html lang="en">

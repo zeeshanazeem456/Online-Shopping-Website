@@ -4,6 +4,7 @@ require __DIR__ . '/includes/db.php';
 require __DIR__ . '/includes/auth.php';
 
 $error = '';
+$users = new UserRepository($pdo);
 
 if (is_logged_in()) {
     if ($_SESSION['role'] === 'admin') {
@@ -17,16 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $statement = $pdo->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-    $statement->execute([$email]);
-    $user = $statement->fetch();
+    $user = $users->findByEmail($email);
 
     if ($user && $password === $user['password']) {
-        session_regenerate_id(true);
-
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['name'] = $user['name'];
-        $_SESSION['role'] = $user['role'];
+        $auth->login($user);
 
         if ($user['role'] === 'admin') {
             redirect_to('admin-panel.php');

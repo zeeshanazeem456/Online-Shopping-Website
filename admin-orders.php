@@ -5,20 +5,20 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
+$orderService = new OrderService($pdo);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'update_order_status') {
         $orderId = (int) ($_POST['order_id'] ?? 0);
         $orderStatus = $_POST['order_status'] ?? 'pending';
-        $allowedStatuses = ['pending', 'processing', 'completed', 'cancelled'];
 
-        if (!in_array($orderStatus, $allowedStatuses, true)) {
-            flash_error('Invalid order status.');
-        } else {
-            $statement = $pdo->prepare('UPDATE orders SET order_status = ? WHERE id = ?');
-            $statement->execute([$orderStatus, $orderId]);
+        try {
+            $orderService->updateStatus($orderId, $orderStatus);
             flash_success('Order status updated.');
+        } catch (Throwable $exception) {
+            flash_error($exception->getMessage());
         }
 
         redirect_to('admin-orders.php');
@@ -28,18 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $message = get_flash_message();
 $error = get_flash_error();
 
-$orders = $pdo
-    ->query(
-        'SELECT o.id, o.total_amount, o.payment_method, o.order_status, o.shipping_address,
-                o.created_at, u.name AS user_name, COUNT(oi.id) AS item_count
-         FROM orders o
-         JOIN users u ON u.id = o.user_id
-         LEFT JOIN order_items oi ON oi.order_id = o.id
-         GROUP BY o.id, o.total_amount, o.payment_method, o.order_status,
-                  o.shipping_address, o.created_at, u.name
-         ORDER BY o.id DESC'
-    )
-    ->fetchAll();
+$orders = $orderService->adminOrders();
 ?>
 <!DOCTYPE html>
 <html lang="en">

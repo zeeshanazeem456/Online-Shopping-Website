@@ -6,6 +6,8 @@ require __DIR__ . '/includes/auth.php';
 require_user();
 
 $userId = (int) $_SESSION['user_id'];
+$productsRepository = new ProductRepository($pdo);
+$cartService = new CartService($pdo, $productsRepository);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -13,31 +15,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'add_to_cart') {
         $productId = (int) ($_POST['product_id'] ?? 0);
 
-        $statement = $pdo->prepare("SELECT id, name, stock FROM products WHERE id = ? AND status = 'active'");
-        $statement->execute([$productId]);
-        $product = $statement->fetch();
-
-        if (!$product) {
-            flash_error('Product not found.');
-        } elseif ((int) $product['stock'] < 1) {
-            flash_error('This product is out of stock.');
-        } else {
-            $statement = $pdo->prepare('SELECT quantity FROM cart_items WHERE user_id = ? AND product_id = ?');
-            $statement->execute([$userId, $productId]);
-            $cartItem = $statement->fetch();
-            $currentQuantity = $cartItem ? (int) $cartItem['quantity'] : 0;
-
-            if ($currentQuantity >= (int) $product['stock']) {
-                flash_error('You cannot add more than available stock.');
-            } else {
-                $statement = $pdo->prepare(
-                    'INSERT INTO cart_items (user_id, product_id, quantity)
-                     VALUES (?, ?, 1)
-                     ON DUPLICATE KEY UPDATE quantity = quantity + 1'
-                );
-                $statement->execute([$userId, $productId]);
-                flash_success($product['name'] . ' added to cart.');
-            }
+        try {
+            flash_success($cartService->addProduct($userId, $productId));
+        } catch (Throwable $exception) {
+            flash_error($exception->getMessage());
         }
 
         redirect_to('shop.php');
@@ -47,22 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $message = get_flash_message();
 $error = get_flash_error();
 
-$products = $pdo
-    ->query(
-        "SELECT p.id, p.name, p.description, p.price, p.stock, p.image, p.status,
-                GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR ', ') AS category_names
-         FROM products p
-         LEFT JOIN product_categories pc ON pc.product_id = p.id
-         LEFT JOIN categories c ON c.id = pc.category_id
-         WHERE p.status = 'active'
-         GROUP BY p.id, p.name, p.description, p.price, p.stock, p.image, p.status
-         ORDER BY p.id"
-    )
-    ->fetchAll();
-
-$cartCountStatement = $pdo->prepare('SELECT COALESCE(SUM(quantity), 0) FROM cart_items WHERE user_id = ?');
-$cartCountStatement->execute([$userId]);
-$cartCount = (int) $cartCountStatement->fetchColumn();
+$products = $productsRepository->activeProductsWithCategories();
+$cartCount = $cartService->countItems($userId);
 ?>
 <!DOCTYPE html>
 <html lang="en">
