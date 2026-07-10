@@ -110,7 +110,6 @@ $categories = $productsRepository->categories();
               <div class="form-row">
                 <label for="image_upload">Product Image</label>
                 <input type="file" id="image_upload" name="image_upload" accept="image/jpeg,image/png,image/webp,image/gif">
-                <p class="form-help">Optional. JPG, PNG, WEBP, or GIF. Maximum size 2MB.</p>
               </div>
             </div>
 
