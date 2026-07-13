@@ -50,7 +50,7 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebHive Shop - Admin Products</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=<?php echo filemtime(__DIR__ . '/assets/css/style.css'); ?>">
 </head>
 <body>
   <div class="site-shell">
@@ -75,7 +75,6 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
           <h1>Products</h1>
           <p class="muted">View, edit, disable, or remove products.</p>
         </div>
-        <a class="btn primary" href="admin-add-product.php">Add Product</a>
       </div>
 
       <?php if ($message): ?>
@@ -87,9 +86,9 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
       <?php endif; ?>
 
       <section class="card">
-        <div class="card-body">
+        <div class="card-body product-table-card">
           <div class="table-wrap">
-            <table>
+            <table class="product-admin-table">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -99,7 +98,6 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
                   <th>Price</th>
                   <th>Stock</th>
                   <th>Status</th>
-                  <th>Created</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -114,25 +112,34 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
                         <span class="badge">No image</span>
                       <?php endif; ?>
                     </td>
-                    <td><?php echo h($product['name']); ?></td>
-                    <td><?php echo h($product['category_names'] ?? 'No category'); ?></td>
-                    <td>Rs <?php echo h(number_format((float) $product['price'], 2)); ?></td>
-                    <td><?php echo h($product['stock']); ?></td>
+                    <td>
+                      <strong class="product-name"><?php echo h($product['name']); ?></strong>
+                    </td>
+                    <td>
+                      <span class="category-list"><?php echo h($product['category_names'] ?? 'No category'); ?></span>
+                    </td>
+                    <td>
+                      <span class="price-cell">Rs <?php echo h(number_format((float) $product['price'], 2)); ?></span>
+                    </td>
+                    <td>
+                      <span class="stock-count <?php echo (int) $product['stock'] <= 5 ? 'is-low' : ''; ?>">
+                        <?php echo h($product['stock']); ?>
+                      </span>
+                    </td>
                     <td>
                       <span class="badge <?php echo $product['status'] === 'active' ? 'success' : 'warning'; ?>">
                         <?php echo h($product['status']); ?>
                       </span>
                     </td>
-                    <td><?php echo h($product['created_at']); ?></td>
                     <td>
-                      <div class="button-row">
-                        <a class="btn secondary" href="admin-edit-product.php?id=<?php echo h($product['id']); ?>">Edit</a>
+                      <div class="table-actions">
+                        <a class="btn secondary compact" href="admin-edit-product.php?id=<?php echo h($product['id']); ?>">Edit</a>
 
                         <form method="post" action="admin-products.php">
                           <input type="hidden" name="action" value="set_status">
                           <input type="hidden" name="product_id" value="<?php echo h($product['id']); ?>">
                           <input type="hidden" name="status" value="<?php echo $product['status'] === 'active' ? 'inactive' : 'active'; ?>">
-                          <button class="btn secondary" type="submit">
+                          <button class="btn secondary compact" type="submit">
                             <?php echo $product['status'] === 'active' ? 'Disable' : 'Enable'; ?>
                           </button>
                         </form>
@@ -140,7 +147,7 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
                         <form method="post" action="admin-products.php" onsubmit="return confirm('This product will be deleted permanently. Do you want to continue?');">
                           <input type="hidden" name="action" value="delete_product">
                           <input type="hidden" name="product_id" value="<?php echo h($product['id']); ?>">
-                          <button class="btn danger" type="submit" <?php echo (int) $product['order_item_count'] > 0 ? 'disabled' : ''; ?>>
+                          <button class="btn danger compact" type="submit" <?php echo (int) $product['order_item_count'] > 0 ? 'disabled' : ''; ?>>
                             Remove
                           </button>
                         </form>

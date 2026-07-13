@@ -51,8 +51,6 @@ $customers = $usersRepository->customerSummaries();
                     <th>ID</th>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Orders</th>
-                    <th>Total Spent</th>
                     <th>Joined</th>
                   </tr>
                 </thead>
@@ -62,8 +60,6 @@ $customers = $usersRepository->customerSummaries();
                       <td><?php echo h($customer['id']); ?></td>
                       <td><?php echo h($customer['name']); ?></td>
                       <td><?php echo h($customer['email']); ?></td>
-                      <td><?php echo h($customer['order_count']); ?></td>
-                      <td>Rs <?php echo h(number_format((float) $customer['total_spent'], 2)); ?></td>
                       <td><?php echo h($customer['created_at']); ?></td>
                     </tr>
                   <?php endforeach; ?>
