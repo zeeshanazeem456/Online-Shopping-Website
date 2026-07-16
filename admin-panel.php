@@ -7,15 +7,15 @@ require_admin();
 
 $productsRepository = new ProductRepository($pdo);
 $usersRepository = new UserRepository($pdo);
-$orderService = new OrderService($pdo);
+$orderRepository = new OrderRepository($pdo);
 
 $totalProducts = $productsRepository->countProducts();
 $totalCategories = $productsRepository->countCategories();
 $totalUsers = $usersRepository->countCustomers();
-$totalOrders = $orderService->countOrders();
-$pendingOrders = $orderService->countPendingOrders();
-$completedSales = $orderService->completedSales();
-$recentOrders = $orderService->recentOrders();
+$totalOrders = $orderRepository->countOrders();
+$pendingOrders = $orderRepository->countPendingOrders();
+$completedSales = $orderRepository->completedSales();
+$recentOrders = $orderRepository->recentOrders();
 ?>
 <!DOCTYPE html>
 <html lang="en">

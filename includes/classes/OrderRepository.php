@@ -1,6 +1,6 @@
 <?php
 
-class OrderService
+class OrderRepository
 {
     public function __construct(private PDO $pdo)
     {

@@ -147,7 +147,7 @@ $products = $productsRepository->productsWithCategoriesAndOrderCounts();
                         <form method="post" action="admin-products.php" onsubmit="return confirm('This product will be deleted permanently. Do you want to continue?');">
                           <input type="hidden" name="action" value="delete_product">
                           <input type="hidden" name="product_id" value="<?php echo h($product['id']); ?>">
-                          <button class="btn danger compact" type="submit" <?php echo (int) $product['order_item_count'] > 0 ? 'disabled' : ''; ?>>
+                          <button class="btn danger compact" type="submit">
                             Remove
                           </button>
                         </form>

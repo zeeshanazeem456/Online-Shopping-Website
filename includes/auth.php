@@ -6,7 +6,7 @@ require_once __DIR__ . '/classes/UserRepository.php';
 require_once __DIR__ . '/classes/ProductRepository.php';
 require_once __DIR__ . '/classes/ProductImageUploader.php';
 require_once __DIR__ . '/classes/CartService.php';
-require_once __DIR__ . '/classes/OrderService.php';
+require_once __DIR__ . '/classes/OrderRepository.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

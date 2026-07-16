@@ -6,11 +6,11 @@ require __DIR__ . '/includes/auth.php';
 require_user();
 
 $userId = (int) $_SESSION['user_id'];
-$orderService = new OrderService($pdo);
+$orderRepository = new OrderRepository($pdo);
 $message = get_flash_message();
 $error = get_flash_error();
 
-$orders = $orderService->userOrders($userId);
+$orders = $orderRepository->userOrders($userId);
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -1,4 +1,5 @@
-CREATE DATABASE IF NOT EXISTS webhive_shop;
+DROP DATABASE IF EXISTS webhive_shop;
+CREATE DATABASE webhive_shop;
 
 USE webhive_shop;
 
@@ -92,6 +93,6 @@ CREATE TABLE IF NOT EXISTS order_items (
     ON UPDATE CASCADE,
   CONSTRAINT fk_order_items_product
     FOREIGN KEY (product_id) REFERENCES products(id)
-    ON DELETE RESTRICT
+    ON DELETE CASCADE
     ON UPDATE CASCADE
 ) ENGINE=InnoDB;

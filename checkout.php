@@ -8,14 +8,14 @@ require_user();
 $userId = (int) $_SESSION['user_id'];
 $productsRepository = new ProductRepository($pdo);
 $cartService = new CartService($pdo, $productsRepository);
-$orderService = new OrderService($pdo);
+$orderRepository = new OrderRepository($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $shippingAddress = trim($_POST['shipping_address'] ?? '');
     $paymentMethod = $_POST['payment_method'] ?? 'cod';
 
     try {
-        $orderId = $orderService->placeOrder($userId, $shippingAddress, $paymentMethod);
+        $orderId = $orderRepository->placeOrder($userId, $shippingAddress, $paymentMethod);
         flash_success('Order placed successfully. Order ID: ' . $orderId);
         redirect_to('my-orders.php');
     } catch (Throwable $exception) {

@@ -5,7 +5,7 @@ require __DIR__ . '/includes/auth.php';
 
 require_admin();
 
-$orderService = new OrderService($pdo);
+$orderRepository = new OrderRepository($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $orderStatus = $_POST['order_status'] ?? 'pending';
 
         try {
-            $orderService->updateStatus($orderId, $orderStatus);
+            $orderRepository->updateStatus($orderId, $orderStatus);
             flash_success('Order status updated.');
         } catch (Throwable $exception) {
             flash_error($exception->getMessage());
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $message = get_flash_message();
 $error = get_flash_error();
 
-$orders = $orderService->adminOrders();
+$orders = $orderRepository->adminOrders();
 ?>
 <!DOCTYPE html>
 <html lang="en">
